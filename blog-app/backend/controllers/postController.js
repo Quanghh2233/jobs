@@ -1,11 +1,19 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
 
 // @desc    Get all posts
 // @route   GET /api/posts
 // @access  Public
 const getPosts = async (req, res) => {
     try {
-        const posts = await Post.find().populate('user', 'name email').sort('-createdAt');
+        const posts = await Post.findAll({
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'name', 'email']
+            }],
+            order: [['createdAt', 'DESC']]
+        });
         res.json(posts);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -17,7 +25,13 @@ const getPosts = async (req, res) => {
 // @access  Public
 const getPostById = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id).populate('user', 'name email');
+        const post = await Post.findByPk(req.params.id, {
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'name', 'email']
+            }]
+        });
 
         if (post) {
             res.json(post);
@@ -34,17 +48,31 @@ const getPostById = async (req, res) => {
 // @access  Private
 const createPost = async (req, res) => {
     try {
-        const { title, content, tags, image } = req.body;
+        const { title, content, tags } = req.body;
+
+        // Handle image uploads
+        let image = '';
+        if (req.file) {
+            image = `/uploads/${req.file.filename}`;
+        }
 
         const post = await Post.create({
             title,
             content,
-            user: req.user._id,
-            tags,
+            userId: req.user.id,
+            tags: tags || '',
             image,
         });
 
-        res.status(201).json(post);
+        const postWithUser = await Post.findByPk(post.id, {
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'name', 'email']
+            }]
+        });
+
+        res.status(201).json(postWithUser);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -55,21 +83,35 @@ const createPost = async (req, res) => {
 // @access  Private
 const updatePost = async (req, res) => {
     try {
-        const { title, content, tags, image } = req.body;
+        const { title, content, tags } = req.body;
 
-        const post = await Post.findById(req.params.id);
+        const post = await Post.findByPk(req.params.id);
 
         if (post) {
-            if (post.user.toString() !== req.user._id.toString()) {
+            if (post.userId !== req.user.id) {
                 return res.status(403).json({ message: 'Not authorized to update this post' });
             }
 
-            post.title = title || post.title;
-            post.content = content || post.content;
-            post.tags = tags || post.tags;
-            post.image = image || post.image;
+            // Update post data
+            if (title) post.title = title;
+            if (content) post.content = content;
+            if (tags) post.tags = tags;
 
-            const updatedPost = await post.save();
+            // Handle image uploads
+            if (req.file) {
+                post.image = `/uploads/${req.file.filename}`;
+            }
+
+            await post.save();
+
+            const updatedPost = await Post.findByPk(post.id, {
+                include: [{
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'email']
+                }]
+            });
+
             res.json(updatedPost);
         } else {
             res.status(404).json({ message: 'Post not found' });
@@ -84,14 +126,14 @@ const updatePost = async (req, res) => {
 // @access  Private
 const deletePost = async (req, res) => {
     try {
-        const post = await Post.findById(req.params.id);
+        const post = await Post.findByPk(req.params.id);
 
         if (post) {
-            if (post.user.toString() !== req.user._id.toString()) {
+            if (post.userId !== req.user.id) {
                 return res.status(403).json({ message: 'Not authorized to delete this post' });
             }
 
-            await post.remove();
+            await post.destroy();
             res.json({ message: 'Post removed' });
         } else {
             res.status(404).json({ message: 'Post not found' });

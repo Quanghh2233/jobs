@@ -1,26 +1,43 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/db');
+const User = require('./User');
 
-const postSchema = mongoose.Schema({
+const Post = sequelize.define('Post', {
     title: {
-        type: String,
-        required: true
+        type: DataTypes.STRING,
+        allowNull: false
     },
     content: {
-        type: String,
-        required: true
+        type: DataTypes.TEXT,
+        allowNull: false
     },
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
+    tags: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        get() {
+            const rawValue = this.getDataValue('tags');
+            return rawValue ? rawValue.split(',') : [];
+        },
+        set(val) {
+            if (Array.isArray(val)) {
+                this.setDataValue('tags', val.join(','));
+            } else {
+                this.setDataValue('tags', val);
+            }
+        }
     },
-    tags: [String],
     image: {
-        type: String
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     timestamps: true
 });
 
-const Post = mongoose.model('Post', postSchema);
+// Set up association between Post and User
+Post.belongsTo(User, {
+    foreignKey: 'userId',
+    as: 'user'
+});
+
 module.exports = Post;

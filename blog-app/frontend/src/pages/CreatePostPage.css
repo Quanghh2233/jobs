@@ -1,0 +1,44 @@
+.create-post-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.create-post-page h1 {
+    margin-bottom: 20px;
+}
+
+.post-form {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.error-message {
+    color: #d32f2f;
+    background-color: #fde8e8;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.image-preview {
+    margin-top: 10px;
+    max-width: 300px;
+}
+
+.image-preview img {
+    width: 100%;
+    border-radius: 4px;
+}
